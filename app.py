@@ -177,9 +177,9 @@ def get_criteria() -> list[dict]:
 
 
 @st.cache_data
-def get_articles() -> list[dict]:
-    """Load the บทความ posters once per process."""
-    return core.load_articles()
+def get_article() -> str:
+    """Load the บทความ content once per process."""
+    return core.load_article()
 
 
 def public_url() -> str:
@@ -311,25 +311,14 @@ def render_header(mode: str) -> None:
 
 
 def render_article() -> None:
-    """Render the reading-material posters, with a second way back at the foot.
+    """Render the บทความ content, with a second way back at the foot.
 
-    The posters are tall, so the corner button alone would mean scrolling the whole page
-    back up to leave.
+    The page is long, so the corner button alone would mean scrolling all the way back up
+    to leave.
     """
     st.markdown("### บทความโรคพุ่มพวง")
-    st.caption(
-        "ภาพในหน้านี้เป็นสื่อให้ความรู้ที่จัดทำโดยหน่วยงานอื่น "
-        "นำมาแสดงเพื่อการศึกษาโดยไม่แสวงหากำไร "
-        "ลิขสิทธิ์เป็นของเจ้าของผลงานตามที่ระบุใต้ภาพ"
-    )
-    for article in get_articles():
-        with st.container(border=True):
-            st.markdown(f"**{article['title_th']}**")
-            st.image(article["image"], use_container_width=True)
-            credit = f"ที่มา: {article['source']}"
-            if article["source_url"]:
-                credit += f" · [ดูต้นฉบับ]({article['source_url']})"
-            st.caption(credit)
+    st.markdown(get_article())
+    st.caption("เรียบเรียงโดยทีมโครงการ · ปรับปรุงล่าสุด 13 สิงหาคม 2569")
     st.write("")
     if st.button("กลับไปหน้าคัดกรอง", type="primary", use_container_width=True):
         leave_article()

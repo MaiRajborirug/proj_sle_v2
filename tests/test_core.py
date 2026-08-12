@@ -90,19 +90,24 @@ def test_every_referenced_image_exists():
     assert missing == []
 
 
-def test_every_article_poster_exists_and_is_described():
-    """The article page is pure data — a mistyped path would only surface as a broken card.
+def test_article_has_content_and_cites_its_sources():
+    ARTICLE = core.load_article()
+    assert len(ARTICLE) > 500
+    assert "แหล่งอ้างอิง" in ARTICLE
 
-    Attribution is asserted, not assumed: these are third-party posters shown without the
-    owners' permission yet, so an uncredited one is a licence problem rather than a
-    cosmetic one. `source_url` may be empty when the original has not been located.
+
+def test_article_embeds_no_images():
+    """docs/adr/0001 removed every third-party poster because none were licensed for reuse.
+
+    A Markdown image would put one back without anyone revisiting that decision, so the
+    rule is enforced here rather than left to review. Links to sources are fine — only
+    reproduction is not.
     """
-    for article in core.load_articles():
-        assert (REPO / article["image"]).is_file(), article["image"]
-        assert article["title_th"].strip(), article["image"]
-        assert article["source"].strip(), article["image"]
-        assert article["licence"].strip(), article["image"]
-        assert isinstance(article["source_url"], str), article["image"]
+    assert "![" not in core.load_article()
+
+
+def test_no_unlicensed_posters_remain_in_the_repo():
+    assert list((REPO / "images").glob("poster_*")) == []
 
 
 def test_criteria_declare_an_images_list():

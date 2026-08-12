@@ -30,7 +30,7 @@ APP_VERSION = "2.0.0"
 
 _HERE = Path(__file__).parent
 CRITERIA_FILE = _HERE / "criteria_d9.json"
-ARTICLES_FILE = _HERE / "articles.json"
+ARTICLE_FILE = _HERE / "article_th.md"
 
 # Triage cut-offs on the fitted points score, which ranges 0–36 for these seven criteria.
 #
@@ -69,14 +69,17 @@ def load_criteria() -> list[dict]:
         return json.load(f)
 
 
-def load_articles() -> list[dict]:
-    """Load the reading-material posters shown on the บทความ page.
+def load_article() -> str:
+    """Load the บทความ page content.
+
+    Written by the project team rather than reproduced from elsewhere, so that publishing
+    it needs nobody's permission — see docs/adr/0001-third-party-poster-usage.md. Kept as
+    Markdown so a clinician can review and edit it without touching code.
 
     Returns:
-        The posters as stored in `articles.json`, in display order.
+        The Markdown source of `article_th.md`.
     """
-    with open(ARTICLES_FILE, encoding="utf-8") as f:
-        return json.load(f)
+    return ARTICLE_FILE.read_text(encoding="utf-8")
 
 
 def max_score(criteria: list[dict]) -> int:
