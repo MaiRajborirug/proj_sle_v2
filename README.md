@@ -82,12 +82,29 @@ written anywhere. Nothing else identifying is collected.
 
 ## Images
 
-`images/` currently holds **placeholders copied from v1's textbook figures**. Every entry
-in `criteria_d9.json` carries `image_source` and `image_licence`, both currently marked
-UNKNOWN/PLACEHOLDER. Replace them one at a time as consented photographs clear review, and
-update those two fields as you go — an ethics committee or reviewer will ask.
+Each criterion carries an `images` **list** in `criteria_d9.json` — zero, one or several.
+ไข้ has none and renders full width; ผื่นลูปัสกึ่งเฉียบพลัน has two, stacked.
 
-Note that teaching consent often does **not** cover use in a publicly accessible app.
+| Criterion | Image | Status |
+| --- | --- | --- |
+| ไข้ | *(none)* | — |
+| ผื่นลูปัสเฉียบพลัน | `acute1.jpg` | supplied by project team |
+| ผื่นลูปัสกึ่งเฉียบพลัน | `subacute1.png`, `subacute2.jpg` | supplied by project team |
+| แผลในปาก | `oral_ulcer.png` | **v1 textbook placeholder** |
+| ผมร่วง | `alopecia.png` | **v1 textbook placeholder** |
+| ข้ออักเสบ | `joint1_left.png` | supplied, cropped from `joint1.png` to the left hand |
+| โปรตีนรั่วในปัสสาวะ | `proteinuria.png` | **v1 textbook placeholder** |
+
+`joint1.png` is the uncropped original, kept for provenance and re-cropping; it is not
+referenced by the app.
+
+Every entry also carries `image_source` and `image_licence`. **All are currently UNKNOWN or
+TO BE CONFIRMED** — resolve them before public launch and update the fields as you go, an
+ethics committee or reviewer will ask. Note that teaching consent often does **not** cover
+use in a publicly accessible app.
+
+`tests/test_core.py` asserts that every referenced path exists, so a stale reference fails
+the suite rather than showing a broken card at the booth.
 
 ## Develop
 

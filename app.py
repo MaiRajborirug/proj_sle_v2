@@ -160,21 +160,33 @@ def render_header(mode: str) -> None:
     st.caption("แบบคัดกรองเบื้องต้น ไม่ใช่การวินิจฉัยโรค · อ้างอิงเกณฑ์ EULAR/ACR 2019")
 
 
+def render_criterion(c: dict) -> bool:
+    """Render one criterion card and return whether it was ticked.
+
+    Criteria with no images (currently ไข้) use the full card width; criteria with
+    several images stack them in the image column.
+    """
+    with st.container(border=True):
+        images = c["images"]
+        if images:
+            img_col, text_col = st.columns([1, 2], vertical_alignment="center")
+            with img_col:
+                for src in images:
+                    st.image(src, use_container_width=True)
+        else:
+            text_col = st.container()
+        with text_col:
+            ticked = st.checkbox(c["name_th"], key=f"c_{c['key']}")
+            st.caption(c["description_th"])
+            if c["requires_test"]:
+                st.caption(f"🔬 ต้องตรวจ: {c['requires_test']}")
+    return ticked
+
+
 def render_form(mode: str) -> dict:
     """Render the seven criterion cards and return the checkbox state."""
     st.markdown("### เลือกอาการที่พบ")
-    values = {}
-    for c in get_criteria():
-        with st.container(border=True):
-            img_col, text_col = st.columns([1, 2], vertical_alignment="center")
-            with img_col:
-                st.image(c["image"], use_container_width=True)
-            with text_col:
-                values[c["key"]] = st.checkbox(c["name_th"], key=f"c_{c['key']}")
-                st.caption(c["description_th"])
-                if c["requires_test"]:
-                    st.caption(f"🔬 ต้องตรวจ: {c['requires_test']}")
-    return values
+    return {c["key"]: render_criterion(c) for c in get_criteria()}
 
 
 def submit(values: dict, mode: str) -> None:

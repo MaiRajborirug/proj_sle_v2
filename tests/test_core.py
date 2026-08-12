@@ -24,10 +24,13 @@
 #   weights, which must not drift from the published values.
 
 import itertools
+from pathlib import Path
 
 import pytest
 
 import core
+
+REPO = Path(__file__).resolve().parents[1]
 
 CRITERIA = core.load_criteria()
 KEYS = [c["key"] for c in CRITERIA]
@@ -54,6 +57,19 @@ def test_eular_weights_match_published_values():
         "Fever": 2, "ACL": 6, "SCL or DL": 4, "Oral Ulcer": 2,
         "Alopecia": 2, "Joint involvement": 6, "Proteinuria": 4,
     }
+
+
+def test_every_referenced_image_exists():
+    """Images churn as consented photographs replace placeholders; a stale path in
+    criteria_d9.json would only surface as a broken card at the booth."""
+    missing = [src for c in CRITERIA for src in c["images"] if not (REPO / src).is_file()]
+    assert missing == []
+
+
+def test_criteria_declare_an_images_list():
+    """Zero images is legal (ไข้ has none); the key itself must always be present."""
+    for c in CRITERIA:
+        assert isinstance(c["images"], list), c["key"]
 
 
 def test_nothing_ticked_scores_zero():
