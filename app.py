@@ -292,6 +292,7 @@ def render_footer() -> None:
         "และ อสม.คลองเขื่อน เป็นการคัดกรองเบื้องต้น ไม่ใช่การวินิจฉัยโรค "
         "และไม่ทดแทนการตรวจโดยแพทย์"
     )
+    st.caption("ติดต่อข้อมูลเพิ่มเติมที่ [napat.po@kmitl.ac.th](mailto:napat.po@kmitl.ac.th)")
     st.markdown(sponsor_strip_html(), unsafe_allow_html=True)
 
 
