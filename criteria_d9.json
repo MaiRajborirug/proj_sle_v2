@@ -5,6 +5,7 @@
     "domain": "Constitutional",
     "domain_th": "อาการทั่วไป",
     "score": 2,
+    "eular_score": 2,
     "name_th": "ไข้",
     "description_th": "ไข้มากกว่า 38.3°C โดยไม่ใช่จากสาเหตุอื่น (เช่น จากไข้หวัด)",
     "requires_test": "",
@@ -17,11 +18,14 @@
     "column": "ACL",
     "domain": "Mucocutaneous",
     "domain_th": "ผิวหนังและเยื่อบุ",
-    "score": 6,
+    "score": 7,
+    "eular_score": 6,
     "name_th": "ผื่นลูปัสเฉียบพลัน",
     "description_th": "ผื่นแดงที่โหนกแก้มทั้งสองข้าง หรือผื่นลูปัสชนิดเฉียบพลัน",
     "requires_test": "",
-    "images": ["images/acute1.jpg"],
+    "images": [
+      "images/acute1.jpg"
+    ],
     "image_source": "Supplied by project team 2026-08-12 — provenance and consent TO BE CONFIRMED",
     "image_licence": "UNKNOWN — must be resolved before public launch"
   },
@@ -30,11 +34,15 @@
     "column": "SCL_or_DL",
     "domain": "Mucocutaneous",
     "domain_th": "ผิวหนังและเยื่อบุ",
-    "score": 4,
+    "score": 8,
+    "eular_score": 4,
     "name_th": "ผื่นลูปัสกึ่งเฉียบพลัน",
     "description_th": "ผื่นแบบวงแหวนหรือคล้ายสะเก็ดเงิน หรือผื่นรูปกลมหรือจาน ที่ทิ้งรอยแผลเป็น",
     "requires_test": "",
-    "images": ["images/subacute1.png", "images/subacute2.jpg"],
+    "images": [
+      "images/subacute1.png",
+      "images/subacute2.jpg"
+    ],
     "image_source": "Supplied by project team 2026-08-12 — provenance and consent TO BE CONFIRMED",
     "image_licence": "UNKNOWN — must be resolved before public launch"
   },
@@ -43,11 +51,14 @@
     "column": "Oral_Ulcer",
     "domain": "Mucocutaneous",
     "domain_th": "ผิวหนังและเยื่อบุ",
-    "score": 2,
+    "score": 1,
+    "eular_score": 2,
     "name_th": "แผลในปาก",
     "description_th": "แผลในช่องปากหรือในจมูก ที่ไม่เจ็บปวด",
     "requires_test": "",
-    "images": ["images/oral_ulcer.png"],
+    "images": [
+      "images/oral_ulcer.png"
+    ],
     "image_source": "proj_sle v1 icons/*_med.png (textbook figure) — PLACEHOLDER, replace with consented patient photo",
     "image_licence": "UNKNOWN — must be resolved before public launch"
   },
@@ -56,11 +67,14 @@
     "column": "Alopecia",
     "domain": "Mucocutaneous",
     "domain_th": "ผิวหนังและเยื่อบุ",
-    "score": 2,
+    "score": 5,
+    "eular_score": 2,
     "name_th": "ผมร่วง",
     "description_th": "ผมร่วงแบบเห็นรูขุมขน",
     "requires_test": "",
-    "images": ["images/hair_nonscaring.png"],
+    "images": [
+      "images/hair_nonscaring.png"
+    ],
     "image_source": "Supplied by project team 2026-08-12, composite of hair_nonscaring2.png (scalp) and hair_nonscaring1.png (dermoscopy) — provenance and consent TO BE CONFIRMED",
     "image_licence": "UNKNOWN — must be resolved before public launch"
   },
@@ -69,11 +83,14 @@
     "column": "Joint_involvement",
     "domain": "Musculoskeletal",
     "domain_th": "กล้ามเนื้อและข้อ",
-    "score": 6,
+    "score": 1,
+    "eular_score": 6,
     "name_th": "ข้ออักเสบ",
     "description_th": "ข้ออักเสบตั้งแต่ 2 ข้อขึ้นไป พร้อมอาการฝืดข้อตอนเช้า ≥30 นาที",
     "requires_test": "",
-    "images": ["images/joint1.png"],
+    "images": [
+      "images/joint1.png"
+    ],
     "image_source": "Supplied by project team 2026-08-12 — provenance and consent TO BE CONFIRMED",
     "image_licence": "UNKNOWN — must be resolved before public launch"
   },
@@ -82,11 +99,14 @@
     "column": "Proteinuria",
     "domain": "Renal",
     "domain_th": "ไต",
-    "score": 4,
+    "score": 12,
+    "eular_score": 4,
     "name_th": "โปรตีนรั่วในปัสสาวะ",
     "description_th": "อัตราส่วนโปรตีนต่อครีเอตินีนในปัสสาวะ >0.5 mg/mg หรือโปรตีน >500 mg/24 ชั่วโมง ใช้ dipstick ≥2+ คัดกรองเบื้องต้นได้",
     "requires_test": "Urine analysis",
-    "images": ["images/proteinuria.png"],
+    "images": [
+      "images/proteinuria.png"
+    ],
     "image_source": "proj_sle v1 icons/*_med.png (textbook figure) — PLACEHOLDER, replace with consented patient photo",
     "image_licence": "UNKNOWN — must be resolved before public launch"
   }

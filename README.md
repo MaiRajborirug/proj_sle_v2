@@ -23,7 +23,7 @@ One deployment, two printed QR codes, plus a safe demo link.
 Print the plain URL on the public poster and `?m=s` on staff lanyards. `?m=t` is for
 demos, training and screenshots — it never writes a row.
 
-## Scoring: why there is no ML model here
+## Scoring: why there is no ML classifier here
 
 v1 ships `model_d9.joblib`, a `CalibratedClassifierCV` over an SVC trained on
 `SLE_NotSLE.csv` — a **202/200 case-control cohort of hospital patients**. Evaluated across
@@ -39,29 +39,84 @@ sick people* — so isolated fever really does argue against SLE there. It is in
 booth, where the comparison group is healthy people. No threshold choice fixes a model
 whose no-symptom case already scores 0.921.
 
-v2 therefore scores with the published **EULAR/ACR 2019** weights restricted to the seven
-observable criteria, using the standard domain-maximum rule:
+v2 therefore does not use a learned classifier. It uses a **points table**, summed, with
+weights that start from the published EULAR/ACR 2019 values and are adjusted by the cohort.
 
-| Criterion | Domain | Weight |
-| --- | --- | --- |
-| ไข้ (Fever) | Constitutional | 2 |
-| ผื่นลูปัสเฉียบพลัน (ACL) | Mucocutaneous | 6 |
-| ผื่นลูปัสกึ่งเฉียบพลัน (SCL/DL) | Mucocutaneous | 4 |
-| แผลในปาก (Oral ulcer) | Mucocutaneous | 2 |
-| ผมร่วง (Alopecia) | Mucocutaneous | 2 |
-| ข้ออักเสบ (Joint involvement) | Musculoskeletal | 6 |
-| โปรตีนรั่วในปัสสาวะ (Proteinuria) | Renal | 4 |
+### The weights, and why they are not the published ones
 
-Range 0–18. Monotonic by construction, and the test suite asserts that exhaustively over
-all 128 inputs. Because immunological markers are excluded, this **cannot** be used for
-formal EULAR/ACR 2019 classification — it is a screening triage only.
+| Criterion | Domain | **Weight used** | EULAR/ACR 2019 |
+| --- | --- | ---: | ---: |
+| โปรตีนรั่วในปัสสาวะ (Proteinuria) | Renal | **12** | 4 |
+| ผื่นลูปัสกึ่งเฉียบพลัน (SCL/DL) | Mucocutaneous | **8** | 4 |
+| ผื่นลูปัสเฉียบพลัน (ACL) | Mucocutaneous | **7** | 6 |
+| ผมร่วง (Alopecia) | Mucocutaneous | **5** | 2 |
+| ไข้ (Fever) | Constitutional | **2** | 2 |
+| แผลในปาก (Oral ulcer) | Mucocutaneous | **1** | 2 |
+| ข้ออักเสบ (Joint involvement) | Musculoskeletal | **1** | 6 |
+
+Range 0–36. `criteria_d9.json` carries both: `score` is the weight in use, `eular_score`
+the published value.
+
+**The published weights alone performed badly here.** Scored with the domain-maximum rule
+on the 402-patient cohort, they reach **ROC AUC 0.647 and specificity 0.205** — they flag
+906 people per 1,000 screened. The cause is joint involvement at +6: 170 of the 402
+patients present as joint-involvement-only, and 154 of those are controls, so that one
+criterion alone pushes most of the comparison group into the referral band. Those weights
+were derived against a broader comparison group than this cohort's; they are not wrong,
+they are being asked the wrong question.
+
+**Fitting freely on the cohort is worse.** Unconstrained, oral ulcer and joint involvement
+both take *negative* weight — coherent for a sample whose controls are rheumatology
+patients, and dangerous anywhere else, since it means reporting one more symptom can lower
+your score.
+
+**So the fit is shrunk toward the published values** (`exp/fit_points_model.py`):
+
+```
+minimise   logloss(Xw + b)  +  λ‖w − κ·w_eular‖²      subject to  w ≥ ε
+```
+
+λ = 2, chosen by cross-validating the whole procedure. Every weight stays strictly
+positive, so the score is monotonic by construction and the test suite asserts that
+exhaustively over all 128 inputs. Cross-validated at the referral cut-off: **AUC 0.905,
+sensitivity 0.802, specificity 0.966** — against 0.647 / 0.862 / 0.205 for the published
+weights. Full comparison of 16 model families in [`exp/REPORT.md`](exp/REPORT.md).
+
+**Summed, not domain-maximum.** The domain-maximum rule exists to stop one organ system
+dominating a *classification* score. For screening it discards information — two
+mucocutaneous findings are stronger evidence than either alone.
+
+Because immunological markers are excluded, this **cannot** be used for formal EULAR/ACR
+2019 classification — it is a screening triage only.
+
+> ⚠️ **The urine dipstick is not optional.** Proteinuria carries 12 of the 36 points, and
+> 59% of the SLE patients in the cohort have it. Without a dipstick at the booth the table
+> degrades to AUC 0.651 and sensitivity 0.545 — no better than the published weights it
+> replaced. Do not run this form without one.
 
 ### Band cut-offs — PROVISIONAL
 
-`core.BAND_YELLOW = 6`, `core.BAND_RED = 10`. RED matches the published classification
-threshold of 10, reached on observable findings alone; YELLOW is the weight of a single
-major finding. **These need clinical sign-off**, and should be revisited after the first
-event against the real score distribution and the referral clinic's capacity.
+Four bands, placed where the likelihood ratio changes rather than at even intervals:
+
+| Band | Score | LR | Meaning |
+| --- | --- | ---: | --- |
+| 🟢 GREEN | 0–2 | 0.14 | Risk genuinely reduced |
+| 🟡 YELLOW | 3–7 | **0.93** | Findings present, risk **unchanged** — no referral |
+| 🟠 ORANGE | 8–12 | 10.1 | Refer, non-urgently |
+| 🔴 RED | 13+ | ≥35 | Refer promptly; 0 of 202 controls reached this band |
+
+`core.BAND_YELLOW = 3`, `core.BAND_ORANGE = 8`, `core.BAND_RED = 13`.
+
+YELLOW exists because scores 3–7 carry a likelihood ratio of 0.93 — statistically
+indistinguishable from 1. Those visitors must not be told they are clear, since their risk
+was not reduced, but referring them would mean referring one control for every case found.
+Folding that range into either neighbour would misreport it. **Referral starts at ORANGE.**
+
+Even RED is roughly 3–4% post-test probability at a public booth's base rate, so the copy
+says *ควรพบแพทย์โดยเร็ว*, never *คุณน่าจะเป็น SLE*.
+
+**These need clinical sign-off**, and should be revisited after the first event against the
+real score distribution and the referral clinic's capacity.
 
 ## Recorded data
 

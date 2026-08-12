@@ -7,9 +7,11 @@ codes plus a safe demo link:
     /?m=s      staff   — assisted by อสม./nurse, records, band + score breakdown on tap
     /?m=t      test    — records nothing, shows a prominent test banner
 
-Scoring uses the published EULAR/ACR 2019 weights restricted to the seven observable
-criteria, not v1's machine-learning model — see the note at the top of core.py for why
-that model cannot be used on a public population.
+Scoring sums a points table over the seven observable criteria — weights fitted to the
+project cohort but shrunk toward the published EULAR/ACR 2019 values, not v1's
+machine-learning model. See the note at the top of core.py for why that model cannot be
+used on a public population, and README.md for why the published weights alone were not
+kept.
 """
 
 from __future__ import annotations
@@ -45,6 +47,10 @@ AGE_BANDS = ["ต่ำกว่า 20 ปี", "20–29 ปี", "30–39 ป�
 # rather than as a value nobody chose.
 DEMOGRAPHIC_KEYS = ("d_sex", "d_age")
 
+# Four bands, not three. YELLOW covers scores whose likelihood ratio is ~1: findings are
+# present but they leave the visitor's risk unchanged. Its wording therefore promises
+# nothing and asks for nothing — merging it into GREEN would falsely reassure, and merging
+# it into ORANGE would refer one healthy person for every case found. See core.py.
 BANDS = {
     core.GREEN: {
         "emoji": "🟢",
@@ -56,19 +62,28 @@ BANDS = {
     },
     core.YELLOW: {
         "emoji": "🟡",
-        "bg": "#fdf4e3",
-        "fg": "#8a5a00",
-        "title": "ควรสังเกตอาการ",
-        "advice": "พบสัญญาณบางอย่างที่ควรติดตาม แนะนำให้สังเกตอาการต่อเนื่อง "
-                  "และปรึกษาแพทย์หากอาการไม่ดีขึ้นหรือมีอาการเพิ่มเติม",
+        "bg": "#fdf9e3",
+        "fg": "#7a6a00",
+        "title": "พบอาการที่ยังไม่จำเพาะ",
+        "advice": "พบอาการที่พบได้ทั่วไป และยังไม่จำเพาะกับโรคพุ่มพวง "
+                  "ยังไม่จำเป็นต้องพบแพทย์ด้วยเรื่องนี้ "
+                  "แต่ควรสังเกตอาการต่อ และพบแพทย์หากอาการเพิ่มขึ้นหรือไม่ดีขึ้น",
+    },
+    core.ORANGE: {
+        "emoji": "🟠",
+        "bg": "#fdf0e3",
+        "fg": "#9a5300",
+        "title": "แนะนำให้พบแพทย์เมื่อสะดวก",
+        "advice": "พบสัญญาณที่ควรได้รับการตรวจเพิ่มเติม ไม่ใช่เรื่องด่วน "
+                  "แต่ควรไปพบแพทย์เมื่อสะดวก",
     },
     core.RED: {
         "emoji": "🔴",
         "bg": "#fdeaea",
         "fg": "#a32020",
-        "title": "ควรปรึกษาแพทย์",
-        "advice": "พบสัญญาณหลายอย่างที่เกี่ยวข้องกับโรคพุ่มพวง "
-                  "แนะนำให้พบแพทย์เพื่อตรวจเพิ่มเติม",
+        "title": "ควรพบแพทย์โดยเร็ว",
+        "advice": "พบสัญญาณหลายอย่างที่ควรได้รับการตรวจเพิ่มเติม "
+                  "แนะนำให้พบแพทย์โดยเร็ว",
     },
 }
 
@@ -94,9 +109,8 @@ CSS = """
       padding: 0.9rem 1rem; width: 100%; border-radius: 0.75rem;
   }
   /* The header nav sits in the top-right corner and must not compete with the primary
-     actions, so it opts out of the full-width button styling above. */
-  /* Streamlit lays a container out as a flex *column*, so the corner button is pushed
-     right with align-items, not justify-content. */
+     actions, so it opts out of the full-width button styling above. Streamlit lays a
+     container out as a flex *column*, so the button is pushed right with align-items. */
   .st-key-nav { align-items: flex-end; }
   .st-key-nav div.stButton > button {
       font-size: 1rem; font-weight: 600; padding: 0.4rem 0.9rem; width: auto;
@@ -303,12 +317,19 @@ def render_article() -> None:
     back up to leave.
     """
     st.markdown("### บทความโรคพุ่มพวง")
-    st.caption("ภาพให้ความรู้จากหน่วยงานสาธารณสุขและโรงพยาบาล")
+    st.caption(
+        "ภาพในหน้านี้เป็นสื่อให้ความรู้ที่จัดทำโดยหน่วยงานอื่น "
+        "นำมาแสดงเพื่อการศึกษาโดยไม่แสวงหากำไร "
+        "ลิขสิทธิ์เป็นของเจ้าของผลงานตามที่ระบุใต้ภาพ"
+    )
     for article in get_articles():
         with st.container(border=True):
             st.markdown(f"**{article['title_th']}**")
             st.image(article["image"], use_container_width=True)
-            st.caption(f"ที่มา: {article['source']}")
+            credit = f"ที่มา: {article['source']}"
+            if article["source_url"]:
+                credit += f" · [ดูต้นฉบับ]({article['source_url']})"
+            st.caption(credit)
     st.write("")
     if st.button("กลับไปหน้าคัดกรอง", type="primary", use_container_width=True):
         leave_article()
@@ -459,13 +480,15 @@ def render_result(mode: str) -> None:
         )
         if mode in ("staff", "test"):
             with st.expander("สำหรับเจ้าหน้าที่"):
-                st.write(f"คะแนน EULAR/ACR (เฉพาะ 7 เกณฑ์ที่สังเกตได้): **{result['score']} / 18**")
+                total = core.max_score(get_criteria())
+                st.write(f"คะแนนคัดกรอง (เฉพาะ 7 เกณฑ์ที่สังเกตได้): **{result['score']} / {total}**")
                 domain_th = {c["domain"]: c["domain_th"] for c in get_criteria()}
                 for domain, pts in result["breakdown"].items():
                     st.write(f"- {domain_th[domain]}: +{pts}")
                 st.caption(
-                    "คะแนนนี้ไม่รวมผลตรวจภูมิคุ้มกัน จึงใช้จำแนกโรคตามเกณฑ์ EULAR/ACR 2019 "
-                    "อย่างเป็นทางการไม่ได้ ใช้เพื่อการคัดกรองเบื้องต้นเท่านั้น"
+                    "คะแนนนี้ใช้น้ำหนักที่ปรับจากข้อมูลผู้ป่วย 402 ราย โดยยึดเกณฑ์ EULAR/ACR 2019 "
+                    "เป็นค่าตั้งต้น ไม่รวมผลตรวจภูมิคุ้มกัน จึงใช้จำแนกโรคอย่างเป็นทางการไม่ได้ "
+                    "ใช้เพื่อการคัดกรองเบื้องต้นเท่านั้น"
                 )
                 if not result["saved"]:
                     st.error("บันทึกข้อมูลไม่สำเร็จ — ระบบจะพยายามบันทึกใหม่อัตโนมัติ")
