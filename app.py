@@ -101,7 +101,13 @@ CSS = """
   /* @import must come first in the stylesheet. If Google Fonts is unreachable — a booth
      on a poor connection — the browser falls back to the system sans-serif. */
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700;800&display=swap');
-  html, body, [class*="css"], .stApp, button, input, select, textarea, div, span, p,
+  /* Streamlit draws its icons as ligature glyphs in a Material font, so a blanket `span`
+     override renders them as the literal ligature name — an expander headed
+     "keyboard_arrow_right" on top of its own label. Excluding those spans leaves
+     Streamlit's own font-family in place rather than naming the icon font here, which
+     would break again the next time Streamlit renames it. */
+  html, body, [class*="css"], .stApp, button, input, select, textarea, div,
+  span:not([data-testid="stIconMaterial"]), p,
   h1, h2, h3, h4, label {
       font-family: 'Noto Sans Thai', sans-serif !important;
   }
