@@ -186,15 +186,20 @@ def get_throttle() -> Throttle:
     return Throttle()
 
 
-@st.cache_data
 def get_criteria() -> list[dict]:
-    """Load the d9 criteria once per process."""
+    """Load the d9 criteria.
+
+    Deliberately not cached. `st.cache_data` keys on the function's own source, not on the
+    file it reads, so a deploy that adds a field to criteria_d9.json without touching this
+    function keeps serving the old list — which is how adding `requires_test_th` crashed
+    the live app with a KeyError. Parsing a 5 KB file a few times per rerun costs nothing
+    next to that failure mode.
+    """
     return core.load_criteria()
 
 
-@st.cache_data
 def get_article() -> str:
-    """Load the บทความ content once per process."""
+    """Load the บทความ content. Uncached for the same reason as `get_criteria`."""
     return core.load_article()
 
 
