@@ -23,8 +23,14 @@ def test_build_header_column_contract():
                           "app_version", "sex", "age_band"]
     assert header[7:14] == ["Fever", "ACL", "SCL_or_DL", "Oral_Ulcer", "Alopecia",
                             "Joint_involvement", "Proteinuria"]
-    assert header[14:] == ["n_criteria", "eular_score", "band"]
-    assert len(header) == 17
+    assert header[14:] == ["n_criteria", "eular_score", "band", "urine_result"]
+    assert len(header) == 18
+
+
+def test_urine_result_is_the_last_column():
+    """A sheet that already holds rows keeps its original header, so a column added
+    anywhere but the end would silently misalign every later row against the old data."""
+    assert storage.build_header(core.load_criteria())[-1] == "urine_result"
 
 
 def test_disabled_recorder_reports_success_without_network():

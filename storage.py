@@ -26,7 +26,19 @@ _RETRY_QUEUE_MAX = 500
 
 FIXED_LEADING = ["timestamp_utc", "session_uuid", "submission_seq", "mode", "app_version",
                  "sex", "age_band"]
-FIXED_TRAILING = ["n_criteria", "eular_score", "band"]
+
+# `urine_result` records whether the visitor had a urine test to answer the Proteinuria
+# criterion from. Without it an untested visitor and one who tested negative are the same
+# blank cell, and Proteinuria is worth a third of the score — see README.md.
+#
+# It is appended at the END rather than grouped with the other inputs on purpose:
+# `_connect` only writes a header when the sheet is empty, so a sheet that already holds
+# rows keeps its original column order. Inserting mid-header would silently misalign every
+# subsequent row against the existing data; appending leaves the earlier columns intact.
+#
+# `eular_score` is a misnomer now that the weights are fitted rather than the published
+# EULAR ones. Renaming it would misalign a live sheet the same way, so it stays.
+FIXED_TRAILING = ["n_criteria", "eular_score", "band", "urine_result"]
 
 
 def build_header(criteria: list[dict]) -> list[str]:

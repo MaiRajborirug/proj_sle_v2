@@ -58,6 +58,18 @@ GREEN, YELLOW, ORANGE, RED = "green", "yellow", "orange", "red"
 # Ascending severity, so callers can compare bands without hardcoding the order.
 BAND_ORDER = (GREEN, YELLOW, ORANGE, RED)
 
+# Cross-validated performance of the shipped table at the ORANGE referral cut-off, over 50
+# outer folds, refitting the weights inside each fold. These are measured output, not
+# tuning knobs — regenerate with exp/fit_points_model.py rather than editing them.
+SENSITIVITY_AT_REFERRAL = 0.802
+SPECIFICITY_AT_REFERRAL = 0.966
+
+# The same procedure with the Proteinuria column zeroed at prediction time, i.e. what the
+# table is worth to a visitor with no urine result. Proteinuria carries 12 of the 36
+# points, and 37 of the cohort's 200 SLE patients present with it and nothing else, so
+# more than half the sensitivity depends on that one dipstick.
+SENSITIVITY_WITHOUT_URINE = 0.378
+
 
 def load_criteria() -> list[dict]:
     """Load the seven d9 criteria.

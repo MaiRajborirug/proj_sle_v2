@@ -9,6 +9,7 @@
     "name_th": "ไข้",
     "description_th": "ไข้มากกว่า 38.3°C โดยไม่ใช่จากสาเหตุอื่น (เช่น จากไข้หวัด)",
     "requires_test": "",
+    "requires_test_th": "",
     "images": [],
     "image_source": "",
     "image_licence": ""
@@ -23,6 +24,7 @@
     "name_th": "ผื่นลูปัสเฉียบพลัน",
     "description_th": "ผื่นแดงที่โหนกแก้มทั้งสองข้าง หรือผื่นลูปัสชนิดเฉียบพลัน",
     "requires_test": "",
+    "requires_test_th": "",
     "images": [
       "images/acute1.jpg"
     ],
@@ -39,6 +41,7 @@
     "name_th": "ผื่นลูปัสกึ่งเฉียบพลัน",
     "description_th": "ผื่นแบบวงแหวนหรือคล้ายสะเก็ดเงิน หรือผื่นรูปกลมหรือจาน ที่ทิ้งรอยแผลเป็น",
     "requires_test": "",
+    "requires_test_th": "",
     "images": [
       "images/subacute1.png",
       "images/subacute2.jpg"
@@ -56,6 +59,7 @@
     "name_th": "แผลในปาก",
     "description_th": "แผลในช่องปากหรือในจมูก ที่ไม่เจ็บปวด",
     "requires_test": "",
+    "requires_test_th": "",
     "images": [
       "images/oral_ulcer.png"
     ],
@@ -72,6 +76,7 @@
     "name_th": "ผมร่วง",
     "description_th": "ผมร่วงแบบเห็นรูขุมขน",
     "requires_test": "",
+    "requires_test_th": "",
     "images": [
       "images/hair_nonscaring.png"
     ],
@@ -88,6 +93,7 @@
     "name_th": "ข้ออักเสบ",
     "description_th": "ข้ออักเสบตั้งแต่ 2 ข้อขึ้นไป พร้อมอาการฝืดข้อตอนเช้า ≥30 นาที",
     "requires_test": "",
+    "requires_test_th": "",
     "images": [
       "images/joint1.png"
     ],
@@ -104,6 +110,7 @@
     "name_th": "โปรตีนรั่วในปัสสาวะ",
     "description_th": "อัตราส่วนโปรตีนต่อครีเอตินีนในปัสสาวะ >0.5 mg/mg หรือโปรตีน >500 mg/24 ชั่วโมง ใช้ dipstick ≥2+ คัดกรองเบื้องต้นได้",
     "requires_test": "Urine analysis",
+    "requires_test_th": "ต้องใช้ผลตรวจปัสสาวะ (dipstick ≥2+)",
     "images": [
       "images/proteinuria.png"
     ],

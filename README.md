@@ -90,9 +90,15 @@ Because immunological markers are excluded, this **cannot** be used for formal E
 2019 classification — it is a screening triage only.
 
 > ⚠️ **The urine dipstick is not optional.** Proteinuria carries 12 of the 36 points, and
-> 59% of the SLE patients in the cohort have it. Without a dipstick at the booth the table
-> degrades to AUC 0.651 and sensitivity 0.545 — no better than the published weights it
-> replaced. Do not run this form without one.
+> 59% of the SLE patients in the cohort have it. Without a urine result the table degrades
+> to ROC AUC 0.651 and **sensitivity 0.378** at the referral cut-off — it misses more cases
+> than it finds. Do not run this form without dipsticks.
+>
+> The app now asks *"คุณมีผลตรวจปัสสาวะหรือไม่"* and records the answer as the
+> `urine_result` column, so an untested visitor is no longer indistinguishable from one who
+> tested negative. Answering "ไม่มี" adds a warning above the result band, and the staff
+> panel reports the degraded figure. The checkbox is never blocked — a booth exists partly
+> so curious people can see what the criteria look like.
 
 ### Band cut-offs — PROVISIONAL
 

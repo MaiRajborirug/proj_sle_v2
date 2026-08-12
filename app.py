@@ -47,6 +47,15 @@ AGE_BANDS = ["ต่ำกว่า 20 ปี", "20–29 ปี", "30–39 ป�
 # rather than as a value nobody chose.
 DEMOGRAPHIC_KEYS = ("d_sex", "d_age")
 
+# Asked as "do you have a urine result", not "were you tested today": someone tested at a
+# hospital last month has a real result, and a today-phrasing would make them answer no
+# while truthfully ticking Proteinuria. Recorded but never used for scoring — an untested
+# visitor and one who tested negative would otherwise be the same blank checkbox, and
+# Proteinuria is worth a third of the scale.
+URINE_KEY = "d_urine"
+URINE_YES, URINE_NO = "มี", "ไม่มี"
+URINE_OPTIONS = [URINE_YES, URINE_NO]
+
 # Four bands, not three. YELLOW covers scores whose likelihood ratio is ~1: findings are
 # present but they leave the visitor's risk unchanged. Its wording therefore promises
 # nothing and asks for nothing — merging it into GREEN would falsely reassure, and merging
@@ -135,6 +144,13 @@ CSS = """
       background: #ffe58f; color: #613400; font-weight: 800; font-size: 1.15rem;
       padding: 0.85rem 1rem; border-radius: 0.6rem; text-align: center;
       margin-bottom: 1rem; border: 2px solid #d4a017;
+  }
+  /* Deliberately blue rather than amber. In ?m=t the test banner is on screen at the same
+     time, and two amber blocks would read as one repeated message. */
+  .notice-banner {
+      background: #e7f1fb; color: #14456e; font-weight: 600; font-size: 1.05rem;
+      padding: 0.8rem 1rem; border-radius: 0.6rem;
+      margin-bottom: 1rem; border: 2px solid #7fb1de;
   }
 </style>
 """
@@ -246,6 +262,7 @@ def build_record(values: dict, score: int, band: str, mode: str) -> dict:
         "app_version": core.APP_VERSION,
         "sex": st.session_state.get("d_sex") or "",
         "age_band": st.session_state.get("d_age") or "",
+        "urine_result": st.session_state.get(URINE_KEY) or "",
         "n_criteria": sum(bool(v) for v in values.values()),
         "eular_score": score,
         "band": band,
@@ -262,7 +279,7 @@ def answer_keys() -> list[str]:
     `snapshot_answers` preserves it. A key left out would survive into the next visitor's
     row and would be lost whenever the form is not on screen.
     """
-    return [f"c_{c['key']}" for c in get_criteria()] + list(DEMOGRAPHIC_KEYS)
+    return [f"c_{c['key']}" for c in get_criteria()] + [*DEMOGRAPHIC_KEYS, URINE_KEY]
 
 
 def snapshot_answers() -> None:
@@ -424,8 +441,8 @@ def render_criterion(c: dict) -> bool:
         with text_col:
             ticked = st.checkbox(c["name_th"], key=f"c_{c['key']}")
             st.caption(c["description_th"])
-            if c["requires_test"]:
-                st.caption(f"🔬 ต้องตรวจ: {c['requires_test']}")
+            if c["requires_test_th"]:
+                st.caption(f"🔬 {c['requires_test_th']}")
     return ticked
 
 
@@ -439,6 +456,8 @@ def render_demographics() -> None:
         st.radio("เพศ", SEX_OPTIONS, key="d_sex", index=None, horizontal=True)
         st.selectbox("ช่วงอายุ", AGE_BANDS, key="d_age", index=None,
                      placeholder="เลือกช่วงอายุ")
+        st.radio("คุณมีผลตรวจปัสสาวะหรือไม่", URINE_OPTIONS, key=URINE_KEY,
+                 index=None, horizontal=True)
         st.caption(
             "ไม่บังคับ · ข้อมูลนี้บันทึกแบบไม่ระบุตัวตน "
             "เพื่อใช้สรุปผลโครงการและการวิจัยเท่านั้น"
@@ -447,6 +466,11 @@ def render_demographics() -> None:
 
 def render_form(mode: str) -> dict:
     """Render the demographics and the seven criterion cards; return the checkbox state."""
+    st.markdown(
+        '<div class="notice-banner">⚠️ เพื่อความแม่นยำ '
+        'แนะนำให้ตรวจปัสสาวะก่อนทำแบบคัดกรอง</div>',
+        unsafe_allow_html=True,
+    )
     render_demographics()
     st.markdown("### เลือกอาการที่พบ")
     return {c["key"]: render_criterion(c) for c in get_criteria()}
@@ -470,6 +494,8 @@ def submit(values: dict, mode: str) -> None:
         st.session_state["result"] = {
             "throttled": False, "score": score, "breakdown": breakdown,
             "band": band, "saved": saved,
+            "urine_result": record["urine_result"],
+            "proteinuria_ticked": bool(values.get("Proteinuria", False)),
         }
         # The result screen does not render the form, so without this the answers are gone
         # by the time "แก้ไขคำตอบ" sends the visitor back to correct one of them.
@@ -479,12 +505,67 @@ def submit(values: dict, mode: str) -> None:
         st.session_state["in_flight"] = False
 
 
+def render_accuracy_note() -> None:
+    """Show what the score is worth, for staff only.
+
+    Phrased as counts out of 100 rather than as sensitivity and specificity, because the
+    readers are อสม. volunteers and the point is operational — how much weight to put on a
+    green. The metric names are kept in brackets for clinician readers.
+
+    Both caveats matter at the booth: the figures come from hospital patients rather than
+    walk-ins, and they assume a urine result the visitor may not have.
+    """
+    st.write("")
+    st.markdown("**ความแม่นยำ** (วัดจากข้อมูลพัฒนา 402 ราย)")
+    st.write(
+        f"- ตรวจพบผู้ป่วยประมาณ {round(core.SENSITIVITY_AT_REFERRAL * 100)} ใน 100 ราย "
+        f"(sensitivity {core.SENSITIVITY_AT_REFERRAL:.2f})"
+    )
+    st.write(
+        f"- คัดคนที่ไม่ได้เป็นออกได้ประมาณ {round(core.SPECIFICITY_AT_REFERRAL * 100)} ใน 100 ราย "
+        f"(specificity {core.SPECIFICITY_AT_REFERRAL:.2f})"
+    )
+    st.caption(
+        "⚠️ ตัวเลขนี้วัดจากผู้ป่วยในโรงพยาบาล ไม่ใช่ประชาชนทั่วไปที่บูธ ค่าจริงอาจต่างจากนี้ · "
+        f"หากไม่มีผลตรวจปัสสาวะ ความไวจะลดเหลือประมาณ "
+        f"{round(core.SENSITIVITY_WITHOUT_URINE * 100)} ใน 100 ราย"
+    )
+
+
+def render_urine_caveat(result: dict) -> None:
+    """Warn, above the band, when the score was reached without a urine result.
+
+    Proteinuria is worth 12 of the 36 points and is the one criterion a visitor cannot
+    observe themselves, so a screen run without it is a partial screen whatever band it
+    lands in. Both messages end on the same action, which is the right advice either way.
+
+    The band is deliberately *not* recalibrated for this case: with Proteinuria unavailable
+    the table is worth ROC AUC 0.651 whatever the cut-offs, so the honest answer is to go
+    and test rather than a re-tuned band. See README.md.
+
+    Args:
+        result: The session's result dict, carrying `urine_result` and
+            `proteinuria_ticked`.
+    """
+    if result.get("urine_result") != URINE_NO:
+        return
+    message = (
+        "⚠️ ผลนี้คิดจากข้อโปรตีนรั่วในปัสสาวะ ซึ่งยังไม่มีผลตรวจยืนยัน "
+        "ควรตรวจปัสสาวะเพื่อยืนยันก่อน"
+        if result.get("proteinuria_ticked")
+        else "⚠️ แบบคัดกรองนี้ยังไม่ได้ดูผลปัสสาวะ ซึ่งเป็นข้อมูลสำคัญ "
+             "แนะนำให้ตรวจแล้วกลับมาประเมินใหม่"
+    )
+    st.markdown(f'<div class="notice-banner">{message}</div>', unsafe_allow_html=True)
+
+
 def render_result(mode: str) -> None:
     """Render the triage card and the redo / next-person actions."""
     result = st.session_state["result"]
     if result.get("throttled"):
         st.warning("มีการส่งข้อมูลถี่เกินไป กรุณารอสักครู่แล้วลองใหม่อีกครั้ง")
     else:
+        render_urine_caveat(result)
         band = BANDS[result["band"]]
         st.markdown(
             f'<div class="band-card" style="background:{band["bg"]};color:{band["fg"]}">'
@@ -500,6 +581,7 @@ def render_result(mode: str) -> None:
                 domain_th = {c["domain"]: c["domain_th"] for c in get_criteria()}
                 for domain, pts in result["breakdown"].items():
                     st.write(f"- {domain_th[domain]}: +{pts}")
+                render_accuracy_note()
                 st.caption(
                     "คะแนนนี้ใช้น้ำหนักที่ปรับจากข้อมูลผู้ป่วย 402 ราย โดยยึดเกณฑ์ EULAR/ACR 2019 "
                     "เป็นค่าตั้งต้น ไม่รวมผลตรวจภูมิคุ้มกัน จึงใช้จำแนกโรคอย่างเป็นทางการไม่ได้ "

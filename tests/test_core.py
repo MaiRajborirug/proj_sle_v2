@@ -83,6 +83,32 @@ def test_every_weight_is_positive():
     assert [c["key"] for c in CRITERIA if c["score"] <= 0] == []
 
 
+def test_reported_accuracy_matches_the_measurement():
+    """These are shown to staff on the result screen, so a stale value is a claim made to a
+    volunteer about how much to trust a green. Measured output of exp/fit_points_model.py
+    at core.BAND_ORANGE — regenerate rather than edit."""
+    assert core.SENSITIVITY_AT_REFERRAL == 0.802
+    assert core.SPECIFICITY_AT_REFERRAL == 0.966
+    assert core.SENSITIVITY_WITHOUT_URINE == 0.378
+
+
+def test_losing_the_urine_result_costs_most_of_the_sensitivity():
+    """The reason the app asks whether a urine result exists at all. If these ever converge
+    the question has stopped earning its place on the form."""
+    assert core.SENSITIVITY_WITHOUT_URINE < core.SENSITIVITY_AT_REFERRAL / 2
+
+
+def test_criteria_declare_a_thai_test_requirement():
+    """Empty is legal for the six criteria a visitor can observe unaided. Proteinuria's
+    must not be, since it is the only one needing a lab result and its caption is the only
+    place the form says so."""
+    for c in CRITERIA:
+        assert isinstance(c["requires_test_th"], str), c["key"]
+    by_key = {c["key"]: c for c in CRITERIA}
+    assert by_key["Proteinuria"]["requires_test_th"].strip()
+    assert by_key["Proteinuria"]["requires_test"].strip()
+
+
 def test_every_referenced_image_exists():
     """Images churn as consented photographs replace placeholders; a stale path in
     criteria_d9.json would only surface as a broken card at the booth."""
