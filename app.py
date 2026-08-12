@@ -33,11 +33,9 @@ MODES = {"s": "staff", "t": "test"}
 # with PUBLIC_URL when the app moves to its own domain.
 DEFAULT_PUBLIC_URL = "https://mdkmitl-osm-sle.streamlit.app"
 
-SPONSOR_LOGOS = [
-    "images/kmitllogo.jpeg",
-    "images/mdkimtl.jpeg",
-    "images/sriracha.png",
-    "images/osm.jpg",
+SPONSOR_LOGO_ROWS = [
+    ["images/mdkimtl.jpeg", "images/osm.jpg"],
+    ["images/kmitllogo.jpeg", "images/sriracha.png"],
 ]
 
 SEX_OPTIONS = ["หญิง", "ชาย", "ไม่ระบุ"]
@@ -84,8 +82,12 @@ CSS = """
       font-family: 'Noto Sans Thai', sans-serif !important;
   }
   section.main > div { max-width: 46rem; padding-top: 1rem; }
-  html, body, [class*="css"] { font-size: 18px; }
-  [data-testid="stCheckbox"] label p { font-size: 1.3rem !important; font-weight: 600; }
+  /* Sized up for older users at a booth. Everything below is in rem, so it scales
+     from this one value. */
+  html, body, [class*="css"] { font-size: 21px; }
+  [data-testid="stCheckbox"] label p { font-size: 1.35rem !important; font-weight: 600; }
+  [data-testid="stCaptionContainer"] p { font-size: 1.02rem !important; }
+  [data-testid="stWidgetLabel"] p { font-size: 1.15rem !important; font-weight: 600; }
   [data-testid="stCheckbox"] { padding: 0.35rem 0; }
   div.stButton > button {
       font-size: 1.25rem; font-weight: 700;
@@ -96,10 +98,14 @@ CSS = """
   .band-card .a { font-size: 1.15rem; line-height: 1.7; }
   /* Equal logo height with width:auto keeps each one's own aspect ratio. */
   .sponsors {
-      display: flex; justify-content: center; align-items: center;
-      gap: 1.5rem; flex-wrap: wrap; margin-top: 0.5rem;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 1.1rem; margin-top: 0.6rem;
   }
-  .sponsors img { height: 60px; width: auto; }
+  .sponsor-row {
+      display: flex; justify-content: center; align-items: center;
+      gap: 2.25rem; flex-wrap: wrap;
+  }
+  .sponsors img { height: 88px; width: auto; }
   .qr-block { text-align: center; margin: 0.5rem 0 1.25rem; }
   .qr-block img { width: 132px; height: 132px; image-rendering: pixelated; }
   .qr-block .cap { font-size: 0.95rem; color: #555; margin-top: 0.3rem; }
@@ -261,17 +267,20 @@ def qr_block_html(url: str) -> str:
 
 @st.cache_data
 def sponsor_strip_html() -> str:
-    """Build the sponsor logo row as one inline HTML block.
+    """Build the sponsor logo rows as one inline HTML block.
 
     Streamlit's own image widget cannot centre a row of logos or normalise their heights,
     so the images are embedded as data URIs and laid out with flexbox instead.
     """
-    tags = []
-    for src in SPONSOR_LOGOS:
-        mime = "image/png" if src.endswith(".png") else "image/jpeg"
-        encoded = base64.b64encode(Path(src).read_bytes()).decode()
-        tags.append(f'<img src="data:{mime};base64,{encoded}" alt="">')
-    return f'<div class="sponsors">{"".join(tags)}</div>'
+    rows = []
+    for row in SPONSOR_LOGO_ROWS:
+        tags = []
+        for src in row:
+            mime = "image/png" if src.endswith(".png") else "image/jpeg"
+            encoded = base64.b64encode(Path(src).read_bytes()).decode()
+            tags.append(f'<img src="data:{mime};base64,{encoded}" alt="">')
+        rows.append(f'<div class="sponsor-row">{"".join(tags)}</div>')
+    return f'<div class="sponsors">{"".join(rows)}</div>'
 
 
 def render_footer() -> None:
@@ -279,8 +288,9 @@ def render_footer() -> None:
     st.divider()
     st.markdown(qr_block_html(public_url()), unsafe_allow_html=True)
     st.caption(
-        "⚠️ เครื่องมือนี้เป็นการคัดกรองเบื้องต้นเท่านั้น ไม่ใช่การวินิจฉัยโรค "
-        "และไม่ทดแทนการตรวจโดยแพทย์"
+        "⚠️ เครื่องมือนี้เป็นการร่วมมือระหว่าง คณะแพทย์ศาสตร์ "
+        "สถาบันเทคโนโลยีพระจอมเกล้าเจ้าคุณทหารลาดกระบัง และ อสม.คลองเขื่อน "
+        "เป็นการคัดกรองเบื้องต้น ไม่ใช่การวินิจฉัยโรค และไม่ทดแทนการตรวจโดยแพทย์"
     )
     st.markdown(sponsor_strip_html(), unsafe_allow_html=True)
 
