@@ -256,21 +256,44 @@ def build_record(values: dict, score: int, band: str, mode: str) -> dict:
 
 
 def answer_keys() -> list[str]:
-    """The session-state keys holding one visitor's answers."""
+    """The session-state keys holding one visitor's answers.
+
+    Every key a visitor can set belongs here: `start_new_person` clears this list, and
+    `snapshot_answers` preserves it. A key left out would survive into the next visitor's
+    row and would be lost whenever the form is not on screen.
+    """
     return [f"c_{c['key']}" for c in get_criteria()] + list(DEMOGRAPHIC_KEYS)
 
 
-def enter_article() -> None:
-    """Open the article page, remembering the answers and where to return to.
+def snapshot_answers() -> None:
+    """Preserve the answers before a screen that does not render the form.
 
     Streamlit discards a widget's session-state entry after any run that does not render
-    it, so without a snapshot, reading an article mid-form would silently clear every
-    tick. The snapshot has to be taken here — this runs before the form is rendered, while
+    it, so every departure from the form — submitting, or opening บทความ — would otherwise
+    silently clear the visitor's answers. Must run before the other screen renders, while
     the previous run's values are still present.
     """
     st.session_state["answers_backup"] = {
         key: st.session_state[key] for key in answer_keys() if key in st.session_state
     }
+
+
+def restore_answers() -> None:
+    """Write the snapshot back, before the widgets are created so each picks its value up
+    as its initial value. A no-op when there is no snapshot."""
+    for key, value in st.session_state.pop("answers_backup", {}).items():
+        st.session_state[key] = value
+
+
+def enter_article() -> None:
+    """Open the article page, remembering the answers and where to return to.
+
+    Only snapshots when leaving the form. Opening บทความ from the result screen would
+    otherwise capture an empty dict — the form's widgets are already gone by then — and
+    overwrite the good snapshot taken at submit.
+    """
+    if st.session_state["stage"] == "form":
+        snapshot_answers()
     st.session_state["return_stage"] = st.session_state["stage"]
     st.session_state["stage"] = "article"
 
@@ -278,11 +301,11 @@ def enter_article() -> None:
 def leave_article() -> None:
     """Return to whichever screen the article page was opened from.
 
-    Restored answers are written back before the widgets are created, so each one picks
-    its snapshotted value up as its initial value.
+    The snapshot is only consumed when returning to the form. Going back to the result
+    screen must leave it in place, so that "แก้ไขคำตอบ" afterwards still has it.
     """
-    for key, value in st.session_state.pop("answers_backup", {}).items():
-        st.session_state[key] = value
+    if st.session_state["return_stage"] == "form":
+        restore_answers()
     st.session_state["stage"] = st.session_state["return_stage"]
 
 
@@ -448,6 +471,9 @@ def submit(values: dict, mode: str) -> None:
             "throttled": False, "score": score, "breakdown": breakdown,
             "band": band, "saved": saved,
         }
+        # The result screen does not render the form, so without this the answers are gone
+        # by the time "แก้ไขคำตอบ" sends the visitor back to correct one of them.
+        snapshot_answers()
         st.session_state["stage"] = "result"
     finally:
         st.session_state["in_flight"] = False
@@ -486,6 +512,7 @@ def render_result(mode: str) -> None:
     redo_col, next_col = st.columns(2)
     with redo_col:
         if st.button("แก้ไขคำตอบ", use_container_width=True):
+            restore_answers()
             st.session_state["stage"] = "form"
             st.rerun()
     with next_col:
