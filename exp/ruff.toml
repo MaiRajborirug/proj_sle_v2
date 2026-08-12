@@ -1,0 +1,20 @@
+# Lint config scoped to the experiment. The app has no ruff config of its own, so this file
+# deliberately stays inside exp/ rather than landing at the repo root.
+line-length = 100
+extend-exclude = [".venv"]
+
+# The experiment modules import each other by bare name and sit next to core.py, which they
+# reach through a sys.path shim. Both are first-party, so imports sort into one block.
+src = [".", ".."]
+
+[lint]
+# E402 is off by default but the sys.path shims genuinely require module-level imports after
+# statements, so it is enabled here to make those `# noqa: E402` markers load-bearing.
+extend-select = ["E402", "I", "UP", "B", "SIM", "RUF"]
+
+# Chart copy is typeset, not code: proper minus and multiplication signs belong in axis
+# labels and titles, and RUF001 would otherwise flag every one of them.
+allowed-confusables = ["−", "×"]
+
+[lint.isort]
+known-first-party = ["core", "data", "diagnostics", "evaluate", "models", "plots"]

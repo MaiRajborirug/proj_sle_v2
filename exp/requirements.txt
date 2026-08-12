@@ -1,0 +1,8 @@
+# Experiment-only dependencies. Deliberately separate from the app's root
+# requirements.txt so the Render deploy (see render.yaml) stays lean.
+matplotlib==3.11.1
+numpy==2.5.2
+pandas==3.0.5
+scikit-learn==1.9.0
+scipy==1.18.0
+xgboost==3.4.0
