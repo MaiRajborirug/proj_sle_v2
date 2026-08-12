@@ -65,13 +65,23 @@ event against the real score distribution and the referral clinic's capacity.
 
 ## Recorded data
 
-Anonymous only — no demographics, no contact details. One row per submission:
+No contact details and nothing identifying an individual. **Sex and a 10-year age band are
+collected** — both optional, neither pre-selected. One row per submission:
 
 ```
-timestamp_utc, session_uuid, submission_seq, mode, app_version,
+timestamp_utc, session_uuid, submission_seq, mode, app_version, sex, age_band,
 Fever, ACL, SCL_or_DL, Oral_Ulcer, Alopecia, Joint_involvement, Proteinuria,
 n_criteria, eular_score, band
 ```
+
+`sex` is `หญิง` / `ชาย` / `ไม่ระบุ` / empty, and `age_band` is one of six 10-year bands or
+empty. **Empty means the question was not answered**, which is distinct from the explicit
+`ไม่ระบุ` answer — keep them apart in analysis.
+
+> **These two fields are personal data under PDPA.** The app carries a short on-screen
+> notice, but the wording has not been reviewed by anyone qualified, and collecting them
+> may change what the ethics committee requires — a plain exemption determination may no
+> longer be the right application. Settle this before the first event.
 
 Redo appends a new row with the same `session_uuid` and an incremented `submission_seq`.
 **At analysis time take the highest `submission_seq` per `session_uuid`**; earlier rows are

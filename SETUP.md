@@ -85,10 +85,13 @@ Use `https://your-domain/?m=t` for demos and training. It shows a yellow
 
 ## 5. Before the first real event
 
-- [ ] **Ethics.** Apply to the KMITL faculty committee for an **exemption determination**.
-      The data is anonymous so this is usually low-friction, but journals ask for it and
-      "not applicable" is a weak answer. Mention the transient IP hashing used for rate
-      limiting.
+- [ ] **Ethics.** Apply to the KMITL faculty committee. The app collects **sex and an age
+      band**, which are personal data under PDPA, so confirm with the committee whether a
+      plain exemption determination still fits or a fuller review is needed. Mention the
+      transient IP hashing used for rate limiting.
+- [ ] **Consent wording.** The on-screen notice under the demographics
+      ("ไม่บังคับ · ข้อมูลนี้บันทึกแบบไม่ระบุตัวตน …") is placeholder text written by a
+      developer, not a lawyer or the ethics committee. Get it reviewed and replaced.
 - [ ] **Image consent.** Confirm the patient photographs' consent covers use in a publicly
       accessible app. Teaching consent often does not. Update `image_source` and
       `image_licence` in `criteria_d9.json` as each image clears.

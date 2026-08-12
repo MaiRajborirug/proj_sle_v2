@@ -8,3 +8,8 @@ venv/
 *service-account*.json
 *credentials*.json
 .env
+# Streamlit's local secrets file holds the service-account key verbatim.
+.streamlit/secrets.toml
+# Patient-level data must never be committed. v1 has the same rule; v2 did not, and
+# exp/SLE_NotSLE.csv (402 patient records) was swept in by a `git add -A` on 2026-08-12.
+*.csv

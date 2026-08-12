@@ -14,6 +14,7 @@ that model cannot be used on a public population.
 
 from __future__ import annotations
 
+import os
 import uuid
 from datetime import datetime, timezone
 
@@ -24,6 +25,13 @@ import storage
 from throttle import Throttle
 
 MODES = {"s": "staff", "t": "test"}
+
+SEX_OPTIONS = ["หญิง", "ชาย", "ไม่ระบุ"]
+AGE_BANDS = ["ต่ำกว่า 20 ปี", "20–29 ปี", "30–39 ปี", "40–49 ปี", "50–59 ปี", "60 ปีขึ้นไป"]
+
+# Both fields default to no selection, so an unanswered question is recorded as blank
+# rather than as a value nobody chose.
+DEMOGRAPHIC_KEYS = ("d_sex", "d_age")
 
 BANDS = {
     core.GREEN: {
@@ -74,6 +82,24 @@ CSS = """
 """
 
 
+def load_secrets_into_env() -> None:
+    """Copy Streamlit-managed secrets into the environment.
+
+    Render and other container hosts supply configuration as environment variables;
+    Streamlit Community Cloud supplies it through `st.secrets`. `storage.py` reads only
+    the environment, so bridge the two here and keep one source of truth downstream.
+    Environment variables already set always win.
+    """
+    for key in ("GOOGLE_SERVICE_ACCOUNT_JSON", "SHEET_ID", "IP_HASH_SALT"):
+        if key in os.environ:
+            continue
+        try:
+            value = st.secrets[key]
+        except Exception:
+            continue
+        os.environ[key] = str(value)
+
+
 @st.cache_resource
 def get_recorder(enabled: bool) -> storage.SheetRecorder:
     """Build the sheet recorder, shared across sessions."""
@@ -122,9 +148,15 @@ def init_session() -> None:
 
 
 def start_new_person() -> None:
-    """Reset to a fresh, unrelated screening — new session ID and cleared answers."""
+    """Reset to a fresh, unrelated screening — new session ID and cleared answers.
+
+    Clears the demographics too: carrying the previous visitor's sex and age band into the
+    next person's row would silently corrupt the dataset.
+    """
     for c in get_criteria():
         st.session_state.pop(f"c_{c['key']}", None)
+    for key in DEMOGRAPHIC_KEYS:
+        st.session_state.pop(key, None)
     st.session_state["session_uuid"] = str(uuid.uuid4())
     st.session_state["seq"] = 0
     st.session_state["result"] = None
@@ -132,13 +164,19 @@ def start_new_person() -> None:
 
 
 def build_record(values: dict, score: int, band: str, mode: str) -> dict:
-    """Assemble one sheet row from the answers and the score."""
+    """Assemble one sheet row from the answers and the score.
+
+    Unanswered demographics are written as an empty string, distinguishing "not asked"
+    from the explicit "ไม่ระบุ" answer.
+    """
     record = {
         "timestamp_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "session_uuid": st.session_state["session_uuid"],
         "submission_seq": st.session_state["seq"],
         "mode": mode,
         "app_version": core.APP_VERSION,
+        "sex": st.session_state.get("d_sex") or "",
+        "age_band": st.session_state.get("d_age") or "",
         "n_criteria": sum(bool(v) for v in values.values()),
         "eular_score": score,
         "band": band,
@@ -183,8 +221,25 @@ def render_criterion(c: dict) -> bool:
     return ticked
 
 
+def render_demographics() -> None:
+    """Render the optional sex and age-band questions.
+
+    Values are read back off session state in `build_record`, so nothing is returned.
+    """
+    st.markdown("### ข้อมูลทั่วไป")
+    with st.container(border=True):
+        st.radio("เพศ", SEX_OPTIONS, key="d_sex", index=None, horizontal=True)
+        st.selectbox("ช่วงอายุ", AGE_BANDS, key="d_age", index=None,
+                     placeholder="เลือกช่วงอายุ")
+        st.caption(
+            "ไม่บังคับ · ข้อมูลนี้บันทึกแบบไม่ระบุตัวตน "
+            "เพื่อใช้สรุปผลโครงการและการวิจัยเท่านั้น"
+        )
+
+
 def render_form(mode: str) -> dict:
-    """Render the seven criterion cards and return the checkbox state."""
+    """Render the demographics and the seven criterion cards; return the checkbox state."""
+    render_demographics()
     st.markdown("### เลือกอาการที่พบ")
     return {c["key"]: render_criterion(c) for c in get_criteria()}
 
@@ -257,6 +312,7 @@ def main() -> None:
     st.set_page_config(page_title="คัดกรองโรคพุ่มพวง | MD KMITL", layout="centered",
                        initial_sidebar_state="collapsed")
     st.markdown(CSS, unsafe_allow_html=True)
+    load_secrets_into_env()
     init_session()
     mode = current_mode()
     render_header(mode)

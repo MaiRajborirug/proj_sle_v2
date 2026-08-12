@@ -19,12 +19,12 @@ from throttle import Throttle
 
 def test_build_header_column_contract():
     header = storage.build_header(core.load_criteria())
-    assert header[:5] == ["timestamp_utc", "session_uuid", "submission_seq", "mode",
-                          "app_version"]
-    assert header[5:12] == ["Fever", "ACL", "SCL_or_DL", "Oral_Ulcer", "Alopecia",
+    assert header[:7] == ["timestamp_utc", "session_uuid", "submission_seq", "mode",
+                          "app_version", "sex", "age_band"]
+    assert header[7:14] == ["Fever", "ACL", "SCL_or_DL", "Oral_Ulcer", "Alopecia",
                             "Joint_involvement", "Proteinuria"]
-    assert header[12:] == ["n_criteria", "eular_score", "band"]
-    assert len(header) == 15
+    assert header[14:] == ["n_criteria", "eular_score", "band"]
+    assert len(header) == 17
 
 
 def test_disabled_recorder_reports_success_without_network():

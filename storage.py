@@ -24,7 +24,8 @@ log = logging.getLogger(__name__)
 _SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 _RETRY_QUEUE_MAX = 500
 
-FIXED_LEADING = ["timestamp_utc", "session_uuid", "submission_seq", "mode", "app_version"]
+FIXED_LEADING = ["timestamp_utc", "session_uuid", "submission_seq", "mode", "app_version",
+                 "sex", "age_band"]
 FIXED_TRAILING = ["n_criteria", "eular_score", "band"]
 
 
