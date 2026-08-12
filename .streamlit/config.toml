@@ -1,0 +1,12 @@
+# Committed — contains no secrets.
+
+[theme]
+# Always render light, regardless of the visitor's device setting. The triage cards are
+# pale backgrounds with dark text and are designed for a light page.
+base = "light"
+
+[client]
+# Hide Streamlit's toolbar (Deploy / Share / Star / GitHub / hamburger). Booth visitors
+# should see the screening form and nothing else.
+toolbarMode = "minimal"
+showErrorDetails = false

@@ -14,9 +14,11 @@ that model cannot be used on a public population.
 
 from __future__ import annotations
 
+import base64
 import os
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 import streamlit as st
 
@@ -25,6 +27,13 @@ import storage
 from throttle import Throttle
 
 MODES = {"s": "staff", "t": "test"}
+
+SPONSOR_LOGOS = [
+    "images/kmitllogo.jpeg",
+    "images/mdkimtl.jpeg",
+    "images/sriracha.png",
+    "images/osm.jpg",
+]
 
 SEX_OPTIONS = ["หญิง", "ชาย", "ไม่ระบุ"]
 AGE_BANDS = ["ต่ำกว่า 20 ปี", "20–29 ปี", "30–39 ปี", "40–49 ปี", "50–59 ปี", "60 ปีขึ้นไป"]
@@ -73,6 +82,12 @@ CSS = """
   .band-card { padding: 1.75rem 1.5rem; border-radius: 1rem; text-align: center; }
   .band-card .t { font-size: 2.1rem; font-weight: 800; margin: 0.4rem 0 0.8rem; }
   .band-card .a { font-size: 1.15rem; line-height: 1.7; }
+  /* Equal logo height with width:auto keeps each one's own aspect ratio. */
+  .sponsors {
+      display: flex; justify-content: center; align-items: center;
+      gap: 1.5rem; flex-wrap: wrap; margin-top: 0.5rem;
+  }
+  .sponsors img { height: 60px; width: auto; }
   .test-banner {
       background: #ffe58f; color: #613400; font-weight: 800; font-size: 1.15rem;
       padding: 0.85rem 1rem; border-radius: 0.6rem; text-align: center;
@@ -187,15 +202,39 @@ def build_record(values: dict, score: int, band: str, mode: str) -> dict:
 
 
 def render_header(mode: str) -> None:
-    """Render the logo, title and the test-mode banner."""
+    """Render the test-mode banner and the title."""
     if mode == "test":
         st.markdown(
             '<div class="test-banner">โหมดทดสอบ — ข้อมูลจะไม่ถูกบันทึก</div>',
             unsafe_allow_html=True,
         )
-    st.image("images/md_kmitl.png", use_container_width=True)
-    st.markdown("## ชุดคัดกรองโรคพุ่มพวง")
-    st.caption("แบบคัดกรองเบื้องต้น ไม่ใช่การวินิจฉัยโรค · อ้างอิงเกณฑ์ EULAR/ACR 2019")
+    st.markdown("# ชุดคัดกรองโรคพุ่มพวง")
+    st.caption("แบบคัดกรองเบื้องต้น ไม่ใช่การวินิจฉัยโรค")
+
+
+@st.cache_data
+def sponsor_strip_html() -> str:
+    """Build the sponsor logo row as one inline HTML block.
+
+    Streamlit's own image widget cannot centre a row of logos or normalise their heights,
+    so the images are embedded as data URIs and laid out with flexbox instead.
+    """
+    tags = []
+    for src in SPONSOR_LOGOS:
+        mime = "image/png" if src.endswith(".png") else "image/jpeg"
+        encoded = base64.b64encode(Path(src).read_bytes()).decode()
+        tags.append(f'<img src="data:{mime};base64,{encoded}" alt="">')
+    return f'<div class="sponsors">{"".join(tags)}</div>'
+
+
+def render_footer() -> None:
+    """Render the disclaimer and the sponsor logos at the foot of the page."""
+    st.divider()
+    st.caption(
+        "⚠️ เครื่องมือนี้เป็นการคัดกรองเบื้องต้นเท่านั้น ไม่ใช่การวินิจฉัยโรค "
+        "และไม่ทดแทนการตรวจโดยแพทย์"
+    )
+    st.markdown(sponsor_strip_html(), unsafe_allow_html=True)
 
 
 def render_criterion(c: dict) -> bool:
@@ -328,11 +367,7 @@ def main() -> None:
     else:
         render_result(mode)
 
-    st.divider()
-    st.caption(
-        "⚠️ เครื่องมือนี้เป็นการคัดกรองเบื้องต้นเท่านั้น ไม่ใช่การวินิจฉัยโรค "
-        "และไม่ทดแทนการตรวจโดยแพทย์"
-    )
+    render_footer()
 
 
 main()
