@@ -10,9 +10,13 @@ Reproduce with `exp/.venv/bin/python exp/run_experiment.py` — see [README.md](
 
 ## Answer
 
-**Recommended: monotone-constrained gradient boosting** (`Monotone XGBoost`, or
-`Monotone HistGB` — they are indistinguishable). F1 **0.890**, ROC AUC **0.926**, Brier
-**0.085**, ECE **0.059**, and **zero** monotonicity violations across all 128 possible inputs.
+**Recommended: the non-negative logistic points model.** F1 **0.884**, ROC AUC **0.925**,
+Brier **0.089**, ECE **0.071**, and **zero** monotonicity violations across all 128 possible
+inputs.
+
+All three monotone models are statistically tied (§3.1) — `Monotone XGBoost` tops the sort at
+F1 0.890 but leads `Monotone HistGB` by 0.0026 at *p = 0.94*. The points model is picked on
+structure, not score: see §3.2.
 
 **Ceiling, for reference:** the best unconstrained model (`Extra trees`, or equally
 `Random forest` / `SVC`) reaches F1 **0.910** and AUC **0.945**. Monotonicity costs about
@@ -107,15 +111,66 @@ against a mixed comparison group; this control arm is not that.
 
 ![Calibration](figures/04_calibration.png)
 
-Calibration was the second priority and it does not force a trade-off — the recommended model wins
-it. `Monotone XGBoost` has the lowest ECE of any strong model (**0.059**, vs 0.094 for both
-`Extra trees` and `Random forest`) and a Brier score within 0.008 of the best.
+Calibration was the second priority and it does not force a trade-off against monotonicity — the
+constrained models are the better calibrated ones. All three beat the top unconstrained models on
+ECE: `Monotone XGBoost` **0.059**, `Monotone HistGB` 0.062, the points model 0.071, against 0.094
+for both `Extra trees` and `Random forest`. Brier separates them by less than 0.02 either way.
 
 Both rule baselines are badly calibrated (ECE 0.269 / 0.347). Platt-scaling the rule fixes the
 Brier a little (0.231 → 0.219) and cannot fix the ranking at all — AUC is unchanged at 0.647,
 because a monotone rescaling cannot reorder anyone.
 
-### Head to head, paired over the same 50 folds
+### 3.1 The three monotone models are tied
+
+Paired over the same 50 folds. Read the effect sizes; the p-values are optimistic because
+repeated k-fold reuses rows across repeats.
+
+| comparison | ΔF1 | p | Δsensitivity | p | ΔECE | p |
+|---|---:|---:|---:|---:|---:|---:|
+| Mono XGBoost − Mono HistGB | +0.0026 | **0.94** | +0.0035 | 0.57 | −0.0029 | 0.010 |
+| Mono XGBoost − Non-neg logistic | +0.0065 | 0.027 | +0.0035 | 0.47 | −0.0119 | 0.009 |
+| Mono HistGB − Non-neg logistic | +0.0039 | 0.005 | 0.0000 | 0.80 | −0.0090 | 0.36 |
+
+`Monotone XGBoost` heads the leaderboard by 0.0026 F1 over `Monotone HistGB` at *p* = 0.94 —
+that is sort order, not evidence. Its lead over the points model is 0.0065 F1 and 0.012 ECE:
+detectable, and too small to choose on. Nothing separates any of the three on **sensitivity**,
+the metric that matters most for a screen.
+
+So the choice inside the monotone family has to be made on grounds other than the score.
+
+### 3.2 Why the points model, and not the boosted trees
+
+There are only **128 possible patients** — seven binary criteria. Of those:
+
+| | count |
+|---|---:|
+| patterns never observed | **68 of 128** |
+| patterns with fewer than 5 patients | 45 (82 of 402 patients) |
+| patterns with fewer than 10 patients | 53 (127 of 402 patients) |
+
+The task is estimating a 128-cell lookup table with more than half the cells empty. The fitted
+`Monotone XGBoost` uses **300 trees** to do it; the points model uses **8 numbers** (7 weights
+and an intercept). Once monotonicity is imposed there is no smooth structure left for the extra
+flexibility to find. Both models return *something* on the 68 unobserved patterns, but on
+different terms: the ensemble returns whichever leaf the pattern happens to fall into, an
+arbitrary step inherited from splits fitted elsewhere, while the points model returns the sum of
+its weights — an extrapolation on a stated, checkable assumption. When the training cohort is
+known to be the wrong population, the assumption you can state is the safer one.
+
+Three practical points follow:
+
+- **It is inspectable and publishable.** Seven weights (§4.2) can be read, argued with by a
+  clinician, and hand-computed at a booth. A 300-tree ensemble can only be trusted.
+- **It is the same shape as the instrument already shipped.** `core.compute_score` already sums
+  per-criterion weights; adopting the points model changes those weights and the aggregation rule
+  (§5), not the architecture. No serialised model artefact, no new scoring code path.
+- **It keeps the deployment lean.** `requirements.txt` stays at three packages; no xgboost, no
+  joblib, no model file to version or load.
+
+If none of that matters for a given deployment, `Monotone XGBoost` buys 0.0065 more F1 and is a
+perfectly defensible pick. This is a tie broken on engineering grounds, not on accuracy.
+
+### 3.3 Best unconstrained vs best monotone, paired over the same 50 folds
 
 | metric | Extra trees | Monotone XGBoost | difference |
 |---|---:|---:|---:|
@@ -218,10 +273,13 @@ Its poor showing is a reason to seek better data, not a reason to swap in a mode
 is worse.
 
 **If the tool is instead pointed at clinic pre-lab triage** — patients already symptomatic, being
-considered for the full panel, i.e. the population this cohort actually samples — then
-`Monotone XGBoost` is a defensible replacement for the rule and would be a large improvement
-(F1 0.890 vs 0.639, AUC 0.926 vs 0.647). It would need to pass the monotonicity property in
-`tests/test_core.py:110-143`, which by construction it does.
+considered for the full panel, i.e. the population this cohort actually samples — then the
+non-negative logistic points model is a defensible replacement for the rule and would be a large
+improvement (F1 0.884 vs 0.639, AUC 0.925 vs 0.647). Adoption means new `score` values in
+`criteria_d9.json` plus two changes in `core.compute_score`: sum the weights instead of taking the
+domain maximum, and — only if a calibrated probability is wanted rather than a band — add the
+fitted intercept and pass the total through a logistic. The monotonicity property in
+`tests/test_core.py:110-143` holds by construction either way.
 
 **What would settle the booth question:** a consecutive sample of booth attendees with the seven
 criteria recorded and a real diagnostic follow-up, including the people who tick nothing. Even a few
@@ -234,6 +292,66 @@ population, joint involvement alone reaches 6 and triggers a referral. Whether t
 clinical call, but it is the single decision that most determines the referral volume.
 
 ---
+
+## 6. What actually shipped
+
+The recommendation in §3.2 was adopted with one refinement, driven by the objection that a
+cohort whose controls are rheumatology patients cannot be trusted to say a criterion is
+worthless. Rather than letting oral ulcer and joint involvement fall to zero, the fit is
+**shrunk toward the published EULAR/ACR weights** instead of toward zero:
+
+```
+minimise   logloss(Xw + b)  +  λ‖w − κ·w_eular‖²      subject to  w ≥ ε
+```
+
+λ = 2, chosen by cross-validating the whole procedure. Reproduce with
+`exp/.venv/bin/python exp/fit_points_model.py`, which refits, rounds, and verifies the
+result against `criteria_d9.json`.
+
+| criterion | shipped points | EULAR/ACR |
+|---|---:|---:|
+| Proteinuria | 12 | 4 |
+| SCL or DL | 8 | 4 |
+| ACL | 7 | 6 |
+| Alopecia | 5 | 2 |
+| Fever | 2 | 2 |
+| Oral Ulcer | 1 | 2 |
+| Joint involvement | 1 | 6 |
+
+Cross-validated at the referral cut-off: **AUC 0.905, sensitivity 0.802, specificity
+0.966**, against 0.647 / 0.862 / 0.205 for the published weights.
+
+The cost of the hedge is about **0.019 of AUC** versus letting those two weights go to
+zero — and that penalty is itself measured on the cohort whose controls are saturated with
+joint involvement, so it is an upper bound.
+
+### Four bands, not three
+
+Cut-offs were placed where the likelihood ratio changes:
+
+| band | score | LR | n | SLE | controls |
+|---|---|---:|---:|---:|---:|
+| GREEN | 0–2 | 0.14 | 208 | 25 | 183 |
+| YELLOW | 3–7 | **0.93** | 25 | 12 | 13 |
+| ORANGE | 8–12 | 10.1 | 66 | 60 | 6 |
+| RED | 13+ | ≥35 | 103 | 103 | 0 |
+
+Scores 3–7 carry a likelihood ratio indistinguishable from 1 — that range leaves risk
+exactly where it started. Folding it into GREEN would falsely reassure 12 SLE patients;
+folding it into ORANGE would refer 13 controls to find them. It therefore gets its own
+band, which reports the finding and asks for nothing. **Referral starts at ORANGE.**
+
+This also corrects an earlier conclusion in this report. §3 selected a cut-off targeting
+sensitivity above the shipped rule's 0.862, reaching 0.875 — but the sensitivity gained
+came entirely from the 3–7 range, which is noise. Chasing sensitivity alone was the wrong
+objective at booth prevalence.
+
+### The dipstick dependency
+
+Proteinuria carries 12 of the 36 points and 59% of the cohort's SLE patients have it. With
+proteinuria unavailable the table collapses to **AUC 0.651, sensitivity 0.545** — no better
+than the published weights. A urine dipstick is a hard requirement for this form, not an
+enhancement.
 
 ## Files
 
