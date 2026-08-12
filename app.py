@@ -28,6 +28,11 @@ from throttle import Throttle
 
 MODES = {"s": "staff", "t": "test"}
 
+# The address the footer QR code encodes — the public entry point, deliberately without
+# ?m=s, since the QR exists so a bystander can open the app on their own phone. Override
+# with PUBLIC_URL when the app moves to its own domain.
+DEFAULT_PUBLIC_URL = "https://mdkmitl-osm-sle.streamlit.app"
+
 SPONSOR_LOGOS = [
     "images/kmitllogo.jpeg",
     "images/mdkimtl.jpeg",
@@ -71,6 +76,13 @@ BANDS = {
 
 CSS = """
 <style>
+  /* @import must come first in the stylesheet. If Google Fonts is unreachable — a booth
+     on a poor connection — the browser falls back to the system sans-serif. */
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700;800&display=swap');
+  html, body, [class*="css"], .stApp, button, input, select, textarea, div, span, p,
+  h1, h2, h3, h4, label {
+      font-family: 'Noto Sans Thai', sans-serif !important;
+  }
   section.main > div { max-width: 46rem; padding-top: 1rem; }
   html, body, [class*="css"] { font-size: 18px; }
   [data-testid="stCheckbox"] label p { font-size: 1.3rem !important; font-weight: 600; }
@@ -88,6 +100,9 @@ CSS = """
       gap: 1.5rem; flex-wrap: wrap; margin-top: 0.5rem;
   }
   .sponsors img { height: 60px; width: auto; }
+  .qr-block { text-align: center; margin: 0.5rem 0 1.25rem; }
+  .qr-block img { width: 132px; height: 132px; image-rendering: pixelated; }
+  .qr-block .cap { font-size: 0.95rem; color: #555; margin-top: 0.3rem; }
   .test-banner {
       background: #ffe58f; color: #613400; font-weight: 800; font-size: 1.15rem;
       padding: 0.85rem 1rem; border-radius: 0.6rem; text-align: center;
@@ -105,7 +120,7 @@ def load_secrets_into_env() -> None:
     the environment, so bridge the two here and keep one source of truth downstream.
     Environment variables already set always win.
     """
-    for key in ("GOOGLE_SERVICE_ACCOUNT_JSON", "SHEET_ID", "IP_HASH_SALT"):
+    for key in ("GOOGLE_SERVICE_ACCOUNT_JSON", "SHEET_ID", "IP_HASH_SALT", "PUBLIC_URL"):
         if key in os.environ:
             continue
         try:
@@ -131,6 +146,11 @@ def get_throttle() -> Throttle:
 def get_criteria() -> list[dict]:
     """Load the d9 criteria once per process."""
     return core.load_criteria()
+
+
+def public_url() -> str:
+    """The address the footer QR code points at."""
+    return os.environ.get("PUBLIC_URL") or DEFAULT_PUBLIC_URL
 
 
 def current_mode() -> str:
@@ -213,6 +233,33 @@ def render_header(mode: str) -> None:
 
 
 @st.cache_data
+def qr_block_html(url: str) -> str:
+    """Render a QR code for `url` as an inline SVG data URI.
+
+    Generated at runtime rather than committed as a PNG so the public URL lives in exactly
+    one place — a stale QR code sends people to a dead address with no visible symptom.
+
+    Args:
+        url: The address the QR code should encode.
+    """
+    import io
+
+    import qrcode
+    import qrcode.image.svg
+
+    img = qrcode.make(url, image_factory=qrcode.image.svg.SvgPathImage, box_size=10, border=2)
+    buf = io.BytesIO()
+    img.save(buf)
+    encoded = base64.b64encode(buf.getvalue()).decode()
+    return (
+        '<div class="qr-block">'
+        f'<img src="data:image/svg+xml;base64,{encoded}" alt="QR code">'
+        '<div class="cap">สแกนเพื่อเปิดแบบคัดกรองนี้ในมือถือของคุณ</div>'
+        "</div>"
+    )
+
+
+@st.cache_data
 def sponsor_strip_html() -> str:
     """Build the sponsor logo row as one inline HTML block.
 
@@ -228,8 +275,9 @@ def sponsor_strip_html() -> str:
 
 
 def render_footer() -> None:
-    """Render the disclaimer and the sponsor logos at the foot of the page."""
+    """Render the QR code, disclaimer and sponsor logos at the foot of the page."""
     st.divider()
+    st.markdown(qr_block_html(public_url()), unsafe_allow_html=True)
     st.caption(
         "⚠️ เครื่องมือนี้เป็นการคัดกรองเบื้องต้นเท่านั้น ไม่ใช่การวินิจฉัยโรค "
         "และไม่ทดแทนการตรวจโดยแพทย์"
