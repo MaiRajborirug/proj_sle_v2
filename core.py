@@ -27,6 +27,7 @@ APP_VERSION = "2.0.0"
 
 _HERE = Path(__file__).parent
 CRITERIA_FILE = _HERE / "criteria_d9.json"
+ARTICLES_FILE = _HERE / "articles.json"
 
 # Triage cut-offs on the restricted EULAR/ACR score, which ranges 0–18 for these seven
 # criteria.
@@ -51,6 +52,16 @@ def load_criteria() -> list[dict]:
         The criteria as stored in `criteria_d9.json`, in display order.
     """
     with open(CRITERIA_FILE, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def load_articles() -> list[dict]:
+    """Load the reading-material posters shown on the บทความ page.
+
+    Returns:
+        The posters as stored in `articles.json`, in display order.
+    """
+    with open(ARTICLES_FILE, encoding="utf-8") as f:
         return json.load(f)
 
 

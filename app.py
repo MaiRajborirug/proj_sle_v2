@@ -93,6 +93,14 @@ CSS = """
       font-size: 1.25rem; font-weight: 700;
       padding: 0.9rem 1rem; width: 100%; border-radius: 0.75rem;
   }
+  /* The header nav sits in the top-right corner and must not compete with the primary
+     actions, so it opts out of the full-width button styling above. */
+  /* Streamlit lays a container out as a flex *column*, so the corner button is pushed
+     right with align-items, not justify-content. */
+  .st-key-nav { align-items: flex-end; }
+  .st-key-nav div.stButton > button {
+      font-size: 1rem; font-weight: 600; padding: 0.4rem 0.9rem; width: auto;
+  }
   .band-card { padding: 1.75rem 1.5rem; border-radius: 1rem; text-align: center; }
   .band-card .t { font-size: 2.1rem; font-weight: 800; margin: 0.4rem 0 0.8rem; }
   .band-card .a { font-size: 1.15rem; line-height: 1.7; }
@@ -154,6 +162,12 @@ def get_criteria() -> list[dict]:
     return core.load_criteria()
 
 
+@st.cache_data
+def get_articles() -> list[dict]:
+    """Load the บทความ posters once per process."""
+    return core.load_articles()
+
+
 def public_url() -> str:
     """The address the footer QR code points at."""
     return os.environ.get("PUBLIC_URL") or DEFAULT_PUBLIC_URL
@@ -184,6 +198,7 @@ def init_session() -> None:
     st.session_state.setdefault("session_uuid", str(uuid.uuid4()))
     st.session_state.setdefault("seq", 0)
     st.session_state.setdefault("stage", "form")
+    st.session_state.setdefault("return_stage", "form")
     st.session_state.setdefault("result", None)
     st.session_state.setdefault("in_flight", False)
 
@@ -194,10 +209,9 @@ def start_new_person() -> None:
     Clears the demographics too: carrying the previous visitor's sex and age band into the
     next person's row would silently corrupt the dataset.
     """
-    for c in get_criteria():
-        st.session_state.pop(f"c_{c['key']}", None)
-    for key in DEMOGRAPHIC_KEYS:
+    for key in answer_keys():
         st.session_state.pop(key, None)
+    st.session_state.pop("answers_backup", None)
     st.session_state["session_uuid"] = str(uuid.uuid4())
     st.session_state["seq"] = 0
     st.session_state["result"] = None
@@ -227,15 +241,78 @@ def build_record(values: dict, score: int, band: str, mode: str) -> dict:
     return record
 
 
+def answer_keys() -> list[str]:
+    """The session-state keys holding one visitor's answers."""
+    return [f"c_{c['key']}" for c in get_criteria()] + list(DEMOGRAPHIC_KEYS)
+
+
+def enter_article() -> None:
+    """Open the article page, remembering the answers and where to return to.
+
+    Streamlit discards a widget's session-state entry after any run that does not render
+    it, so without a snapshot, reading an article mid-form would silently clear every
+    tick. The snapshot has to be taken here — this runs before the form is rendered, while
+    the previous run's values are still present.
+    """
+    st.session_state["answers_backup"] = {
+        key: st.session_state[key] for key in answer_keys() if key in st.session_state
+    }
+    st.session_state["return_stage"] = st.session_state["stage"]
+    st.session_state["stage"] = "article"
+
+
+def leave_article() -> None:
+    """Return to whichever screen the article page was opened from.
+
+    Restored answers are written back before the widgets are created, so each one picks
+    its snapshotted value up as its initial value.
+    """
+    for key, value in st.session_state.pop("answers_backup", {}).items():
+        st.session_state[key] = value
+    st.session_state["stage"] = st.session_state["return_stage"]
+
+
+def render_nav() -> None:
+    """Render the top-right link into and out of the article page."""
+    with st.container(key="nav"):
+        if st.session_state["stage"] == "article":
+            if st.button("← ย้อนกลับ"):
+                leave_article()
+                st.rerun()
+        elif st.button("📖 บทความ"):
+            enter_article()
+            st.rerun()
+
+
 def render_header(mode: str) -> None:
-    """Render the test-mode banner and the title."""
+    """Render the test-mode banner, the corner nav and the title."""
     if mode == "test":
         st.markdown(
             '<div class="test-banner">โหมดทดสอบ — ข้อมูลจะไม่ถูกบันทึก</div>',
             unsafe_allow_html=True,
         )
+    render_nav()
     st.markdown("# ชุดคัดกรองโรคพุ่มพวง")
     st.caption("แบบคัดกรองเบื้องต้น ไม่ใช่การวินิจฉัยโรค")
+
+
+def render_article() -> None:
+    """Render the reading-material posters, with a second way back at the foot.
+
+    The posters are tall, so the corner button alone would mean scrolling the whole page
+    back up to leave.
+    """
+    st.markdown("### บทความโรคพุ่มพวง")
+    st.caption("ภาพให้ความรู้จากหน่วยงานสาธารณสุขและโรงพยาบาล")
+    for article in get_articles():
+        with st.container(border=True):
+            st.markdown(f"**{article['title_th']}**")
+            st.image(article["image"], use_container_width=True)
+            st.caption(f"ที่มา: {article['source']}")
+    st.write("")
+    if st.button("กลับไปหน้าคัดกรอง", type="primary", use_container_width=True):
+        leave_article()
+        st.rerun()
 
 
 @st.cache_data
@@ -415,7 +492,9 @@ def main() -> None:
     mode = current_mode()
     render_header(mode)
 
-    if st.session_state["stage"] == "form":
+    if st.session_state["stage"] == "article":
+        render_article()
+    elif st.session_state["stage"] == "form":
         values = render_form(mode)
         st.write("")
         n = sum(values.values())

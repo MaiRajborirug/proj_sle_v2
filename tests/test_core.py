@@ -66,6 +66,15 @@ def test_every_referenced_image_exists():
     assert missing == []
 
 
+def test_every_article_poster_exists_and_is_described():
+    """The article page is pure data — a mistyped path or a missing attribution would only
+    surface as a broken card, and the posters are third-party work that must stay credited."""
+    for article in core.load_articles():
+        assert (REPO / article["image"]).is_file(), article["image"]
+        assert article["title_th"].strip(), article["image"]
+        assert article["source"].strip(), article["image"]
+
+
 def test_criteria_declare_an_images_list():
     """Zero images is legal (ไข้ has none); the key itself must always be present."""
     for c in CRITERIA:
