@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: sle-screening-v2
+    runtime: python
+    plan: standard          # 2 GB — the 512 MB tiers cannot hold ~30-90 concurrent sessions
+    buildCommand: pip install -r requirements.txt
+    startCommand: >
+      streamlit run app.py
+      --server.port $PORT
+      --server.address 0.0.0.0
+      --server.headless true
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13"
+      # Set these in the Render dashboard, never in this file — see SETUP.md.
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: SHEET_ID
+        sync: false
+      - key: IP_HASH_SALT
+        generateValue: true
