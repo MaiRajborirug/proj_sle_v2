@@ -91,12 +91,18 @@ def test_every_referenced_image_exists():
 
 
 def test_every_article_poster_exists_and_is_described():
-    """The article page is pure data — a mistyped path or a missing attribution would only
-    surface as a broken card, and the posters are third-party work that must stay credited."""
+    """The article page is pure data — a mistyped path would only surface as a broken card.
+
+    Attribution is asserted, not assumed: these are third-party posters shown without the
+    owners' permission yet, so an uncredited one is a licence problem rather than a
+    cosmetic one. `source_url` may be empty when the original has not been located.
+    """
     for article in core.load_articles():
         assert (REPO / article["image"]).is_file(), article["image"]
         assert article["title_th"].strip(), article["image"]
         assert article["source"].strip(), article["image"]
+        assert article["licence"].strip(), article["image"]
+        assert isinstance(article["source_url"], str), article["image"]
 
 
 def test_criteria_declare_an_images_list():
