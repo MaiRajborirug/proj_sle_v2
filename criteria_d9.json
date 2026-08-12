@@ -73,8 +73,8 @@
     "name_th": "ข้ออักเสบ",
     "description_th": "ข้ออักเสบตั้งแต่ 2 ข้อขึ้นไป พร้อมอาการฝืดข้อตอนเช้า ≥30 นาที",
     "requires_test": "",
-    "images": ["images/joint1_left.png"],
-    "image_source": "Supplied by project team 2026-08-12, cropped to the affected left hand — provenance and consent TO BE CONFIRMED",
+    "images": ["images/joint1.png"],
+    "image_source": "Supplied by project team 2026-08-12 — provenance and consent TO BE CONFIRMED",
     "image_licence": "UNKNOWN — must be resolved before public launch"
   },
   {

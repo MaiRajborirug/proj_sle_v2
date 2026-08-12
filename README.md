@@ -92,11 +92,8 @@ Each criterion carries an `images` **list** in `criteria_d9.json` — zero, one 
 | ผื่นลูปัสกึ่งเฉียบพลัน | `subacute1.png`, `subacute2.jpg` | supplied by project team |
 | แผลในปาก | `oral_ulcer.png` | **v1 textbook placeholder** |
 | ผมร่วง | `alopecia.png` | **v1 textbook placeholder** |
-| ข้ออักเสบ | `joint1_left.png` | supplied, cropped from `joint1.png` to the left hand |
+| ข้ออักเสบ | `joint1.png` | supplied by project team |
 | โปรตีนรั่วในปัสสาวะ | `proteinuria.png` | **v1 textbook placeholder** |
-
-`joint1.png` is the uncropped original, kept for provenance and re-cropping; it is not
-referenced by the app.
 
 Every entry also carries `image_source` and `image_licence`. **All are currently UNKNOWN or
 TO BE CONFIRMED** — resolve them before public launch and update the fields as you go, an
