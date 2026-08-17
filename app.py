@@ -114,7 +114,7 @@ CSS = """
   section.main > div { max-width: 46rem; padding-top: 1rem; }
   /* Sized up for older users at a booth. Everything below is in rem, so it scales
      from this one value. */
-  html, body, [class*="css"] { font-size: 21px; }
+  html, body, [class*="css"] { font-size: 19px; }
   [data-testid="stCheckbox"] label p { font-size: 1.35rem !important; font-weight: 600; }
   [data-testid="stCaptionContainer"] p { font-size: 1.02rem !important; }
   [data-testid="stWidgetLabel"] p { font-size: 1.15rem !important; font-weight: 600; }

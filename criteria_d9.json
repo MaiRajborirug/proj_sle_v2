@@ -108,9 +108,9 @@
     "score": 12,
     "eular_score": 4,
     "name_th": "โปรตีนรั่วในปัสสาวะ",
-    "description_th": "อัตราส่วนโปรตีนต่อครีเอตินีนในปัสสาวะ >0.5 mg/mg หรือโปรตีน >500 mg/24 ชั่วโมง ใช้ dipstick ≥2+ คัดกรองเบื้องต้นได้",
+    "description_th": "ถ้าไม่มีผลตรวจ: ปัสสาวะเป็นฟองคล้ายฟองเบียร์ ปัสสาวะบ่อยตอนกลางคืน",
     "requires_test": "Urine analysis",
-    "requires_test_th": "ต้องใช้ผลตรวจปัสสาวะ (dipstick ≥2+)",
+    "requires_test_th": "ถ้ามีผลตรวจ: โปรตีนต่อครีเอตินีนในปัสสาวะ >0.5 mg/mg หรือโปรตีน >500 mg/24 ชั่วโมง",
     "images": [
       "images/proteinuria.png"
     ],
